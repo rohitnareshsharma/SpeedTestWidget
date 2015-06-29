@@ -4,6 +4,14 @@ This also serves as an example of offloading ui drawing tasks to a non ui thread
 
 A very good producer consumer problem example.
 
+NOTE : Pending Tasks
+
+1. Orientation Support
+2. Different screen resolution support
+3. Performaing actual file upload and download for the tests.
+
+
+
 ![Alt text](/Screenshot_2015-06-29-06-21-14.png?raw=true “Cropped Image Sample”)
 
 Download Sample from here.

@@ -10,15 +10,12 @@ import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
-import android.os.Environment;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -737,19 +734,6 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
             mRunning = running;
         }
 
-        private File getFileToSaveDownloadBytes() {
-            String pathToSaveFile = Environment.getExternalStorageDirectory().toString() +
-                                    "/" +
-                                    mContext.getString(R.string.app_name) +
-                                    "/temp";
-
-            Log.v(TAG, "Path where saving file" + pathToSaveFile);
-            File file = new File(pathToSaveFile);
-            file.mkdirs();
-
-            return new File(file, "speed.test");
-        }
-
         @Override
         public void run() {
             super.run();
@@ -767,8 +751,6 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
                 c.setDoOutput(true);
                 c.connect();
 
-                // Prepare the file stream of sd card to write downloaded bytes.
-                FileOutputStream fos = new FileOutputStream(getFileToSaveDownloadBytes());
                 InputStream is = c.getInputStream();
 
                 byte[] buffer = new byte[4096];
@@ -780,9 +762,8 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
                 long startTimeNs = System.nanoTime();
 
                 while ((len1 = is.read(buffer)) != -1) {
-                    fos.write(buffer, 0, len1);
-                    bytesWritten += len1;
                     timeElapsedNs = System.nanoTime() - startTimeNs;
+                    bytesWritten += len1;
 
                     // Wait for 1 Seconds before publishing results
                     if(timeElapsedNs < 1 * 1000000000) {
@@ -809,7 +790,6 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
                     }
                 }
 
-                fos.close();
                 is.close();
 
             } catch(Exception e){

@@ -2,18 +2,18 @@
 <items version="2" >
 
     <item
-        jar="/Users/rohit/Desktop/SpeedTestWidget/app/build/intermediates/exploded-aar/com.android.support/support-v4/22.1.1/jars/libs/internal_impl-22.1.1.jar"
-        jumboMode="false"
-        revision="22.0.1"
-        sha1="9e070ad32b2700b0343e8e0cccc437733d91ba3a">
-        <dex dex="/Users/rohit/Desktop/SpeedTestWidget/app/build/intermediates/pre-dexed/debug/internal_impl-22.1.1-e33b3758762a28cb36988babcb4b964fae1d0392.jar" />
-    </item>
-    <item
         jar="/Users/rohit/Library/Android/sdk/extras/android/m2repository/com/android/support/support-annotations/22.1.1/support-annotations-22.1.1.jar"
         jumboMode="false"
         revision="22.0.1"
         sha1="01d051a6bfb1218b1db2d3a5af0480ac2c25c42a">
         <dex dex="/Users/rohit/Desktop/SpeedTestWidget/app/build/intermediates/pre-dexed/debug/support-annotations-22.1.1-44d887e9c06de4255b5ee21f38edfb3f5ebda78d.jar" />
+    </item>
+    <item
+        jar="/Users/rohit/Desktop/SpeedTestWidget/app/build/intermediates/exploded-aar/com.android.support/support-v4/22.1.1/jars/classes.jar"
+        jumboMode="false"
+        revision="22.0.1"
+        sha1="c95ba8152923e4872e86a82cfcba9a51c0214328">
+        <dex dex="/Users/rohit/Desktop/SpeedTestWidget/app/build/intermediates/pre-dexed/debug/classes-77733d18f402bffb6ab42ae213835ed5e130660b.jar" />
     </item>
     <item
         jar="/Users/rohit/Desktop/SpeedTestWidget/app/build/intermediates/exploded-aar/com.android.support/appcompat-v7/22.1.1/jars/classes.jar"
@@ -23,11 +23,11 @@
         <dex dex="/Users/rohit/Desktop/SpeedTestWidget/app/build/intermediates/pre-dexed/debug/classes-4e4eb428b9e330e0c0099eb40b42fb6cac4e2740.jar" />
     </item>
     <item
-        jar="/Users/rohit/Desktop/SpeedTestWidget/app/build/intermediates/exploded-aar/com.android.support/support-v4/22.1.1/jars/classes.jar"
+        jar="/Users/rohit/Desktop/SpeedTestWidget/app/build/intermediates/exploded-aar/com.android.support/support-v4/22.1.1/jars/libs/internal_impl-22.1.1.jar"
         jumboMode="false"
         revision="22.0.1"
-        sha1="c95ba8152923e4872e86a82cfcba9a51c0214328">
-        <dex dex="/Users/rohit/Desktop/SpeedTestWidget/app/build/intermediates/pre-dexed/debug/classes-77733d18f402bffb6ab42ae213835ed5e130660b.jar" />
+        sha1="9e070ad32b2700b0343e8e0cccc437733d91ba3a">
+        <dex dex="/Users/rohit/Desktop/SpeedTestWidget/app/build/intermediates/pre-dexed/debug/internal_impl-22.1.1-e33b3758762a28cb36988babcb4b964fae1d0392.jar" />
     </item>
 
 </items>

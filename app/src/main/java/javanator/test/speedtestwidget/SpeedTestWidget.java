@@ -35,24 +35,60 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
      */
     private static final String TAG = SpeedTestWidget.class.getSimpleName();
 
+    /*
+     * To start the arc from left bottom with a pie shape with a missing slice.
+     */
     private static final int ARC_START_ANGLE = -225;
 
+    /*
+     * Max length of the arc drawn. It will be used for drawing backgrounds of arcs.
+     */
     private static final int ARC_BACKGROUND_SWEEP_ANGLE = 270;
 
+    /*
+     * Stroke width of the arcs.
+     */
     private static final float ARC_STROKE_WIDTH = 40.0f;
 
+    /*
+     * Padding of outer circle so that equally distant value indicators get displayed properly.
+     */
     private static final float OUTER_ARC_PADDING = 150f;
 
-    private static final int[] TEXT_POINTER_VALUE_IN_MB = {0, 1, 2, 3, 4, 5, 10, 20, 50, 100};
+    /*
+     * Array of speed indicating values to be displayed above outer arc.
+     */
+    private static final int[] SPEED_INDICATING_VALUES_IN_MB = {0, 1, 2, 3, 4, 5, 10, 20, 50, 100};
 
-    private static final String TEXT_POINTER_VALUE_POSTFIX = "M";
+    /*
+     * A postfix string to the speed indicating values.
+     */
+    private static final String SPEED_INDICATING_VALUE_POSTFIX = "M";
 
+    /*
+     * Text size of ui state text drawn in center.
+     * All this needs to move to dimen files taking care of screen resolution.
+     */
     private static final float CENTER_TEXT_SIZE = 60f;
 
+    /*
+     * Context associated with the view.
+     */
     private Context mContext;
 
+    /*
+     * Background thread performing the ui drawing of the widget.
+     */
     private RenderingThread renderingThread;
+
+    /*
+     * Background thread performing the download operation and publishing results.
+     */
     private CalculateDownloadSpeedThread calculateDownloadSpeedThread;
+
+    /*
+     * Background thread performing the upload operation and publishing results.
+     */
     private CalculateUploadSpeedThread calculateUploadSpeedThread;
 
     // Components for outer download arc
@@ -63,11 +99,11 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
     private RectF rectForUploadArc;
     private Paint paintForUploadArc;
 
-    // Component for outer text pointers.
-    private Paint paintForTextPointers;
-    private Path pathForTextPointers;
-    private float verticalOffSetOfTextOnPath = -45.0f;
-    private float pointersTextSize = 40.0f;
+    // Component for outer speed indicating values.
+    private Paint paintForSpeedIndicatingValues;
+    private Path pathForSpeedIndicatingValues;
+    private float verticalOffSetOfSpeedIndicatingValuesOnPath = -45.0f;
+    private float speedIndicatingValuesTextSize = 40.0f;
 
     // Component for eraser paint
     private Paint eraserPaint;
@@ -81,6 +117,10 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
     private Paint paintForCenterText;
     private String centerText;
 
+    // Flag indicating the touch down event received on Center button.
+    // It will start off the start operation if touch up event is also
+    // received on center button before this flag goes off. See
+    // OnTouchEvent delegate in current class.
     private boolean centerButtonPressed = false;
 
     public SpeedTestWidget(Context context) {
@@ -197,7 +237,7 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
         initRequiredRectAndPaint();
 
         // Draw the text pointers
-        drawTextPointers(canvas);
+        drawSpeedIndicatingValues(canvas);
 
         // Draw the background of download arc
         paintForDownloadArc.setColor(Color.DKGRAY);
@@ -255,19 +295,19 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
                 paintForCenterText);
     }
 
-    private void drawTextPointers(Canvas canvas) {
-        PathMeasure measure = new PathMeasure(pathForTextPointers, false);
+    private void drawSpeedIndicatingValues(Canvas canvas) {
+        PathMeasure measure = new PathMeasure(pathForSpeedIndicatingValues, false);
 
         float originalDistance = 0;
 
-        int numberOfTextPointers = TEXT_POINTER_VALUE_IN_MB.length;
+        int numberOfTextPointers = SPEED_INDICATING_VALUES_IN_MB.length;
 
         for (int i = 0; i < numberOfTextPointers; i++) {
 
-            int value = TEXT_POINTER_VALUE_IN_MB[i];
-            String pointerValue = value + TEXT_POINTER_VALUE_POSTFIX;
+            int value = SPEED_INDICATING_VALUES_IN_MB[i];
+            String pointerValue = value + SPEED_INDICATING_VALUE_POSTFIX;
 
-            float pointerWidth = paintForTextPointers.measureText(pointerValue);
+            float pointerWidth = paintForSpeedIndicatingValues.measureText(pointerValue);
             float hOffSet = originalDistance;
             if (i != 0 && i != (numberOfTextPointers - 1)) {
                 hOffSet -= (pointerWidth / 2);
@@ -277,10 +317,10 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
 
             canvas.drawTextOnPath(
                     pointerValue,
-                    pathForTextPointers,
+                    pathForSpeedIndicatingValues,
                     hOffSet,
-                    verticalOffSetOfTextOnPath,
-                    paintForTextPointers);
+                    verticalOffSetOfSpeedIndicatingValuesOnPath,
+                    paintForSpeedIndicatingValues);
 
             originalDistance += measure.getLength() / (numberOfTextPointers - 1);
         }
@@ -290,7 +330,7 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
 
         initRectAndPaintForDownloadArc();
         initRectAndPaintForUploadArc();
-        initPaintForTextPointers();
+        initPaintForSpeedIndicatingValues();
         initRectAndPaintForEraser();
         initRectAndPaintForCenterButton();
         initPaintForCenterText();
@@ -405,16 +445,16 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
         }
     }
 
-    private void initPaintForTextPointers() {
+    private void initPaintForSpeedIndicatingValues() {
         // Check for rectForDownloadArc is initialized or not.
-        if (paintForTextPointers == null) {
+        if (paintForSpeedIndicatingValues == null) {
 
-            paintForTextPointers = new Paint();
-            paintForTextPointers.setTextSize(pointersTextSize);
-            paintForTextPointers.setColor(Color.BLACK);
+            paintForSpeedIndicatingValues = new Paint();
+            paintForSpeedIndicatingValues.setTextSize(speedIndicatingValuesTextSize);
+            paintForSpeedIndicatingValues.setColor(Color.BLACK);
 
-            pathForTextPointers = new Path();
-            pathForTextPointers.addArc(rectForDownloadArc,
+            pathForSpeedIndicatingValues = new Path();
+            pathForSpeedIndicatingValues.addArc(rectForDownloadArc,
                     ARC_START_ANGLE,
                     ARC_BACKGROUND_SWEEP_ANGLE);
         }
@@ -428,6 +468,7 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
         centerText = mContext.getString(R.string.wait);
         renderingThread.setRunning(true);
 
+        // Start the upload thread.
         calculateUploadSpeedThread = new CalculateUploadSpeedThread(this);
         calculateUploadSpeedThread.setRunning(true);
         calculateUploadSpeedThread.start();
@@ -449,27 +490,27 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
 
         // Start with the first index.
         int i = 1;
-        while (i < TEXT_POINTER_VALUE_IN_MB.length) {
-            if (speedInMbps <= TEXT_POINTER_VALUE_IN_MB[i]) {
+        while (i < SPEED_INDICATING_VALUES_IN_MB.length) {
+            if (speedInMbps <= SPEED_INDICATING_VALUES_IN_MB[i]) {
                 break;
             }
             i++;
         }
 
-        if (i >= TEXT_POINTER_VALUE_IN_MB.length) {
+        if (i >= SPEED_INDICATING_VALUES_IN_MB.length) {
             return ARC_BACKGROUND_SWEEP_ANGLE;
         }
 
-        int numberOfDegreeInEachSection = ARC_BACKGROUND_SWEEP_ANGLE / TEXT_POINTER_VALUE_IN_MB.length;
+        int numberOfDegreeInEachSection = ARC_BACKGROUND_SWEEP_ANGLE / SPEED_INDICATING_VALUES_IN_MB.length;
         sweepingAngle = (i - 1) * numberOfDegreeInEachSection;
 
         // We have calculated the floor text pointer sweepingAngle.
         // Calculate the rest increase as well.
         // Lets calculate the difference of speed in the section where our speed is
         // residing.
-        float diffOfSpeedInResidingSection = TEXT_POINTER_VALUE_IN_MB[i] - TEXT_POINTER_VALUE_IN_MB[i - 1];
+        float diffOfSpeedInResidingSection = SPEED_INDICATING_VALUES_IN_MB[i] - SPEED_INDICATING_VALUES_IN_MB[i - 1];
         float perDegreeMbIncreaseInResidingSection = diffOfSpeedInResidingSection / numberOfDegreeInEachSection;
-        float speedInMppsLeftToBeConsideredInSweepingAngle = speedInMbps - TEXT_POINTER_VALUE_IN_MB[i - 1];
+        float speedInMppsLeftToBeConsideredInSweepingAngle = speedInMbps - SPEED_INDICATING_VALUES_IN_MB[i - 1];
 
         // Prepare the array for binary search to find the nearest index where speed belongs
         float[] arrayOfSpeedValues = new float[numberOfDegreeInEachSection];

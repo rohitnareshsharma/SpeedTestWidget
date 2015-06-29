@@ -30,8 +30,8 @@ import java.util.Random;
  * Widget to display speedtest functionality.
  * Its custom surface view so that drawing gets done
  * on non ui thread.
- * <p/>
- * <p/>
+ *  
+ * 
  * Created by rohit on 28/06/15.
  */
 public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callback {

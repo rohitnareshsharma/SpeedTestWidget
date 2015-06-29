@@ -10,12 +10,18 @@ import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.RectF;
+import android.os.Environment;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Random;
@@ -519,7 +525,7 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
         }
 
         int nearestIndex = getClosestIndex(arrayOfSpeedValues, speedInMppsLeftToBeConsideredInSweepingAngle);
-        sweepingAngle += nearestIndex * perDegreeMbIncreaseInResidingSection;
+        sweepingAngle += nearestIndex;
 
         return sweepingAngle;
     }
@@ -712,9 +718,16 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
 
     private class CalculateDownloadSpeedThread extends Thread {
 
-        boolean mRunning = false;
+        // Better set it from gradle settings for build types
+        private final String DOWNLOAD_URL = "http://static.rawtooth.com/test.500mb";
 
-        SpeedTestWidget mSpeedTestWidget;
+        private final Double MAX_TIME_FOR_DOWNLOAD_PROCESS_IN_NS = 10000 * 1000000.0D;
+
+        private final Double TIME_FOR_PUBLISHING_RESULTS_IN_NS = 200 * 1000000.0D;
+
+        private boolean mRunning = false;
+
+        private SpeedTestWidget mSpeedTestWidget;
 
         public CalculateDownloadSpeedThread(SpeedTestWidget speedTestWidget) {
             mSpeedTestWidget = speedTestWidget;
@@ -722,6 +735,19 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
 
         public void setRunning(boolean running) {
             mRunning = running;
+        }
+
+        private File getFileToSaveDownloadBytes() {
+            String pathToSaveFile = Environment.getExternalStorageDirectory().toString() +
+                                    "/" +
+                                    mContext.getString(R.string.app_name) +
+                                    "/temp";
+
+            Log.v(TAG, "Path where saving file" + pathToSaveFile);
+            File file = new File(pathToSaveFile);
+            file.mkdirs();
+
+            return new File(file, "speed.test");
         }
 
         @Override
@@ -732,27 +758,67 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
                 return;
             }
 
-            int i = 0;
-            while (i < 30) {
-                try {
-                    Thread.sleep(300);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+            try{
+
+                // Prepare the connection to download file
+                URL url = new URL(DOWNLOAD_URL);
+                HttpURLConnection c = (HttpURLConnection) url.openConnection();
+                c.setRequestMethod("GET");
+                c.setDoOutput(true);
+                c.connect();
+
+                // Prepare the file stream of sd card to write downloaded bytes.
+                FileOutputStream fos = new FileOutputStream(getFileToSaveDownloadBytes());
+                InputStream is = c.getInputStream();
+
+                byte[] buffer = new byte[4096];
+
+                int len1 = 0;
+                long timeElapsedNs = 0;
+                long bytesWritten = 0;
+                long lastResultPublishTimeNs = 0;
+                long startTimeNs = System.nanoTime();
+
+                while ((len1 = is.read(buffer)) != -1) {
+                    fos.write(buffer, 0, len1);
+                    bytesWritten += len1;
+                    timeElapsedNs = System.nanoTime() - startTimeNs;
+
+                    // Wait for 1 Seconds before publishing results
+                    if(timeElapsedNs < 1 * 1000000000) {
+                        continue;
+                    }
+
+                    // Calculate the mega bits downloaded.
+                    float megabitsDownloaded = (bytesWritten * 8 )/(1000000.0F);
+
+                    // Check for recent publishing time and avoid frequent update.
+                    if(lastResultPublishTimeNs == 0 ||
+                      (timeElapsedNs - lastResultPublishTimeNs) > TIME_FOR_PUBLISHING_RESULTS_IN_NS) {
+
+                        lastResultPublishTimeNs = timeElapsedNs;
+
+                        float downloadSpeedInMbPS = megabitsDownloaded  / (timeElapsedNs/1000000000.0f);
+
+                        Log.d(TAG, "Download speed is " + downloadSpeedInMbPS + "Mbps");
+                        setDownloadSpeed(downloadSpeedInMbPS);
+                    }
+
+                    if(timeElapsedNs >= MAX_TIME_FOR_DOWNLOAD_PROCESS_IN_NS) {
+                        break;
+                    }
                 }
 
-                i++;
+                fos.close();
+                is.close();
 
-                if (!mRunning) {
-                    break;
-                }
-
-                int speed = randInt(5, 20);
-                setDownloadSpeed(speed);
-
+            } catch(Exception e){
+                Log.e(TAG, e.getMessage(), e);
             }
 
             setDownloadCompleted();
         }
+
     }
 
     private class CalculateUploadSpeedThread extends Thread {
@@ -791,7 +857,7 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
                     break;
                 }
 
-                int speed = randInt(3, 7);
+                int speed = randInt(5, 10);
                 setUploadSpeed(speed);
 
             }

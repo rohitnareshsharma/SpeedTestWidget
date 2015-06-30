@@ -128,6 +128,8 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
     // OnTouchEvent delegate in current class.
     private boolean centerButtonPressed = false;
 
+    private ProgressListener progressListener;
+
     public SpeedTestWidget(Context context) {
         super(context);
         init(context);
@@ -230,9 +232,17 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
         centerText = mContext.getString(R.string.wait);
         renderingThread.setRunning(true);
 
+        // Reset previous counters
+        renderingThread.showDownloadSweepingAngle(0);
+        renderingThread.showUploadSweepingAngle(0);
+
         calculateDownloadSpeedThread = new CalculateDownloadSpeedThread(this);
         calculateDownloadSpeedThread.setRunning(true);
         calculateDownloadSpeedThread.start();
+    }
+
+    public void setProgressListener(ProgressListener progressListener) {
+        this.progressListener = progressListener;
     }
 
     protected void doDraw(Canvas canvas,
@@ -467,6 +477,10 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
 
     public void setDownloadSpeed(float speedInMbps) {
         renderingThread.showDownloadSweepingAngle(calculateSweepAngleOnSpeedBasis(speedInMbps));
+
+        if(progressListener != null) {
+            progressListener.onDownloadProgress(speedInMbps);
+        }
     }
 
     public void setDownloadCompleted() {
@@ -477,16 +491,26 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
         calculateUploadSpeedThread = new CalculateUploadSpeedThread(this);
         calculateUploadSpeedThread.setRunning(true);
         calculateUploadSpeedThread.start();
+
+        if(progressListener != null) {
+            progressListener.onDownloadCompleted();
+        }
     }
 
     public void setUploadCompleted() {
         centerText = mContext.getString(R.string.start);
         renderingThread.setRunning(true);
+        if(progressListener != null) {
+            progressListener.onUploadCompleted();
+        }
     }
 
 
     public void setUploadSpeed(float speedInMbps) {
         renderingThread.showUploadSweepingAngle(calculateSweepAngleOnSpeedBasis(speedInMbps));
+        if(progressListener != null) {
+            progressListener.onUploadProgress(speedInMbps);
+        }
     }
 
     private int calculateSweepAngleOnSpeedBasis(float speedInMbps) {
@@ -929,6 +953,15 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
 
             setUploadCompleted();
         }
+    }
+
+    public interface ProgressListener {
+
+        void onDownloadProgress(float downloadSpeedInMbps);
+        void onDownloadCompleted();
+
+        void onUploadProgress(float uploadSpeedInMbps);
+        void onUploadCompleted();
     }
 
     /**

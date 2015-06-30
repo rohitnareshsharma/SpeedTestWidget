@@ -50,6 +50,20 @@ public class SpeedTestActivtyFragment extends Fragment implements SpeedTestWidge
                 tvStatusMessage.setText(R.string.preparing_download);
             }
         });
+
+        tvDownloadSpeed.post(new Runnable() {
+            @Override
+            public void run() {
+                tvDownloadSpeed.setText("0");
+            }
+        });
+
+        tvUploadSpeed.post(new Runnable() {
+            @Override
+            public void run() {
+                tvUploadSpeed.setText("0");
+            }
+        });
     }
 
     @Override

@@ -19,6 +19,8 @@ public class SpeedTestActivtyFragment extends Fragment implements SpeedTestWidge
 
     private TextView tvUploadSpeed;
 
+    private TextView tvStatusMessage;
+
     public SpeedTestActivtyFragment() {
     }
 
@@ -35,8 +37,19 @@ public class SpeedTestActivtyFragment extends Fragment implements SpeedTestWidge
         speedTestWidget = (SpeedTestWidget) view.findViewById(R.id.speed_test_widget);
         tvDownloadSpeed = (TextView) view.findViewById(R.id.tv_download_speed);
         tvUploadSpeed = (TextView) view.findViewById(R.id.tv_upload_speed);
+        tvStatusMessage = (TextView) view.findViewById(R.id.tv_status_message);
 
         speedTestWidget.setProgressListener(this);
+    }
+
+    @Override
+    public void onTestStarted() {
+        tvStatusMessage.post(new Runnable() {
+            @Override
+            public void run() {
+                tvStatusMessage.setText(R.string.preparing_download);
+            }
+        });
     }
 
     @Override
@@ -52,6 +65,12 @@ public class SpeedTestActivtyFragment extends Fragment implements SpeedTestWidge
     @Override
     public void onDownloadCompleted() {
         // Doing nothing for now
+        tvStatusMessage.post(new Runnable() {
+            @Override
+            public void run() {
+                tvStatusMessage.setText(R.string.preparing_upload);
+            }
+        });
     }
 
     @Override
@@ -67,5 +86,20 @@ public class SpeedTestActivtyFragment extends Fragment implements SpeedTestWidge
     @Override
     public void onUploadCompleted() {
         // Doing nothing for now
+        // Doing nothing for now
+        tvStatusMessage.post(new Runnable() {
+            @Override
+            public void run() {
+                tvStatusMessage.setText(R.string.test_completed);
+            }
+        });
+
+        // Doing nothing for now
+        tvStatusMessage.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                tvStatusMessage.setText(R.string.start_test);
+            }
+        }, 1500);
     }
 }

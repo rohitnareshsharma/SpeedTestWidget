@@ -232,6 +232,10 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
         centerText = mContext.getString(R.string.wait);
         renderingThread.setRunning(true);
 
+        if(progressListener != null) {
+            progressListener.onTestStarted();
+        }
+
         // Reset previous counters
         renderingThread.showDownloadSweepingAngle(0);
         renderingThread.showUploadSweepingAngle(0);
@@ -957,6 +961,7 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
 
     public interface ProgressListener {
 
+        void onTestStarted();
         void onDownloadProgress(float downloadSpeedInMbps);
         void onDownloadCompleted();
 

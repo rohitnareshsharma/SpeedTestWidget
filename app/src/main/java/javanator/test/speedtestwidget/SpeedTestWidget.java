@@ -16,8 +16,10 @@ import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -720,7 +722,9 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
 
         private final Double MAX_TIME_FOR_DOWNLOAD_PROCESS_IN_NS = 10000 * 1000000.0D;
 
-        private final Double TIME_FOR_PUBLISHING_RESULTS_IN_NS = 200 * 1000000.0D;
+        private final Double TIME_FOR_PUBLISHING_RESULTS_IN_NS = 50 * 1000000.0D;
+
+        private final Double ONE_SECOND_IN_NS_UNIT = 1000000000D;
 
         private boolean mRunning = false;
 
@@ -748,6 +752,7 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
                 URL url = new URL(DOWNLOAD_URL);
                 HttpURLConnection c = (HttpURLConnection) url.openConnection();
                 c.setRequestMethod("GET");
+                c.setConnectTimeout(20000);
                 c.setDoOutput(true);
                 c.connect();
 
@@ -766,12 +771,12 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
                     bytesWritten += len1;
 
                     // Wait for 1 Seconds before publishing results
-                    if(timeElapsedNs < 1 * 1000000000) {
+                    if(timeElapsedNs < ONE_SECOND_IN_NS_UNIT) {
                         continue;
                     }
 
                     // Calculate the mega bits downloaded.
-                    float megabitsDownloaded = (bytesWritten * 8 )/(1000000.0F);
+                    float bitsDownloaded = bytesWritten * 8;
 
                     // Check for recent publishing time and avoid frequent update.
                     if(lastResultPublishTimeNs == 0 ||
@@ -779,7 +784,7 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
 
                         lastResultPublishTimeNs = timeElapsedNs;
 
-                        float downloadSpeedInMbPS = megabitsDownloaded  / (timeElapsedNs/1000000000.0f);
+                        float downloadSpeedInMbPS = (bitsDownloaded * 1000.0F)  / timeElapsedNs;
 
                         Log.d(TAG, "Download speed is " + downloadSpeedInMbPS + "Mbps");
                         setDownloadSpeed(downloadSpeedInMbPS);
@@ -803,7 +808,16 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
 
     private class CalculateUploadSpeedThread extends Thread {
 
-        boolean mRunning = false;
+        // Better set it from gradle settings for build types
+        private final String UPLOAD_URL = "http://test.rawtooth.com/FileStore?";
+
+        private boolean mRunning = false;
+
+        private final Double MAX_TIME_FOR_UPLOAD_PROCESS_IN_NS = 15000 * 1000000.0D;
+
+        private final Double TIME_FOR_PUBLISHING_RESULTS_IN_NS = 10 * 1000000.0D;
+
+        private final Double ONE_SECOND_IN_NS_UNIT = 1000000000D;
 
         SpeedTestWidget mSpeedTestWidget;
 
@@ -823,23 +837,94 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
                 return;
             }
 
-            int i = 0;
-            while (i < 30) {
-                try {
-                    Thread.sleep(300);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+            int serverResponseCode = 0;
+            String fileName = "speed.test";
+            String lineEnd = "\r\n";
+            String twoHyphens = "--";
+            String boundary = "*****";
+
+            byte[] buffer = new byte[4 * 1024];;
+
+            try {
+
+                // open a URL connection to the Servlet
+                URL url = new URL(UPLOAD_URL);
+
+                // Open a HTTP  connection to  the URL
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setDoInput(true); // Allow Inputs
+                conn.setDoOutput(true); // Allow Outputs
+                conn.setUseCaches(false); // Don't use a Cached Copy
+                conn.setConnectTimeout(20000);
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Connection", "Keep-Alive");
+                conn.setRequestProperty("ENCTYPE", "multipart/form-data");
+                conn.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
+                conn.setRequestProperty("uploaded_file", fileName);
+                conn.setRequestProperty("fileName", fileName);
+                conn.setChunkedStreamingMode(buffer.length);
+
+                DataOutputStream dos = new DataOutputStream(conn.getOutputStream());
+                dos.writeBytes(twoHyphens + boundary + lineEnd);
+                dos.writeBytes("Content-Disposition: post-data; name=uploaded_file;filename=" +
+                                fileName + "" +
+                                lineEnd);
+
+                dos.writeBytes(lineEnd);
+
+                long timeElapsedNs = 0;
+                long bytesWritten = 0;
+                long lastResultPublishTimeNs = 0;
+                long startTimeNs = System.nanoTime();
+
+                while (timeElapsedNs <= MAX_TIME_FOR_UPLOAD_PROCESS_IN_NS) {
+
+                    dos.write(buffer, 0, buffer.length);
+                    timeElapsedNs = System.nanoTime() - startTimeNs;
+                    bytesWritten += buffer.length;
+
+                    // Wait for 1 Seconds before publishing results
+                    if(timeElapsedNs < ONE_SECOND_IN_NS_UNIT) {
+                        continue;
+                    }
+
+                    // Calculate the mega bits downloaded.
+                    float bitsUploaded = bytesWritten * 8 ;
+
+                    // Check for recent publishing time and avoid frequent update.
+                    if(lastResultPublishTimeNs == 0 ||
+                            (timeElapsedNs - lastResultPublishTimeNs) > TIME_FOR_PUBLISHING_RESULTS_IN_NS) {
+
+                        lastResultPublishTimeNs = timeElapsedNs;
+
+                        float uploadSpeedInMbPS = (bitsUploaded * 1000.0f) / timeElapsedNs;
+
+                        Log.d(TAG, "Upload speed is " + uploadSpeedInMbPS + "Mbps");
+                        setUploadSpeed(uploadSpeedInMbPS);
+                    }
+
                 }
 
-                i++;
+                // send multipart form data necesssary after file data...
+                dos.writeBytes(lineEnd);
+                dos.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
 
-                if (!mRunning) {
-                    break;
-                }
+                // Responses from the server (code and message)
+                serverResponseCode = conn.getResponseCode();
+                String serverResponseMessage = conn.getResponseMessage();
 
-                int speed = randInt(5, 10);
-                setUploadSpeed(speed);
+                Log.i("uploadFile", "HTTP Response is : "
+                        + serverResponseMessage + ": " + serverResponseCode);
 
+                dos.flush();
+                dos.close();
+
+            } catch (MalformedURLException ex) {
+
+                Log.e(TAG, "error: " + ex.getMessage(), ex);
+            } catch (Exception e) {
+
+                Log.e(TAG, "error : " + e.getMessage(), e);
             }
 
             setUploadCompleted();

@@ -8,7 +8,6 @@ NOTE : Pending Tasks
 
 1. Orientation Support
 2. Different screen resolution support
-3. Performaing actual file upload and download for the tests.
 
 
 

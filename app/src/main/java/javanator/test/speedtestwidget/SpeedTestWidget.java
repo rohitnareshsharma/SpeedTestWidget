@@ -534,7 +534,7 @@ public class SpeedTestWidget extends SurfaceView implements SurfaceHolder.Callba
             return ARC_BACKGROUND_SWEEP_ANGLE;
         }
 
-        int numberOfDegreeInEachSection = ARC_BACKGROUND_SWEEP_ANGLE / SPEED_INDICATING_VALUES_IN_MB.length;
+        int numberOfDegreeInEachSection = ARC_BACKGROUND_SWEEP_ANGLE / (SPEED_INDICATING_VALUES_IN_MB.length - 1);
         sweepingAngle = (i - 1) * numberOfDegreeInEachSection;
 
         // We have calculated the floor text pointer sweepingAngle.
